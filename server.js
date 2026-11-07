@@ -503,8 +503,8 @@ function parseJsonBody(req) {
   });
 }
 
-// HTTP Server
-const server = http.createServer(async (req, res) => {
+// HTTP Request Handler (supports both standalone HTTP server and Vercel Serverless)
+async function handleRequest(req, res) {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
   const method = req.method;
@@ -1062,7 +1062,9 @@ const server = http.createServer(async (req, res) => {
       res.end(content);
     });
   });
-});
+}
+
+const server = http.createServer(handleRequest);
 
 // Initialize and start server
 initDb();
@@ -1083,11 +1085,10 @@ server.on('error', (err) => {
   }
 });
 
-// Run standalone server on local/Render, but export handler for Vercel Serverless
+// Run standalone server on local / Render.com
 if (!IS_VERCEL) {
   startServer(PORT);
 }
 
-module.exports = (req, res) => {
-  server.emit('request', req, res);
-};
+// Export request handler for Vercel Serverless Function
+module.exports = handleRequest;
