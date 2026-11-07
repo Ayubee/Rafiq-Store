@@ -7,50 +7,226 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { DatabaseSync } = require('node:sqlite');
+let DatabaseSync = null;
+try {
+  DatabaseSync = require('node:sqlite').DatabaseSync;
+} catch (e) {
+  // node:sqlite not available on older runtimes (e.g. Node 20 on Vercel)
+}
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
 const IS_VERCEL = Boolean(process.env.VERCEL);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
-// Resolve database path: Vercel uses writable /tmp directory
-let DB_FILE;
-if (IS_VERCEL) {
-  const tmpDb = path.join('/tmp', 'support.db');
-  const bundledDb = path.join(__dirname, 'data', 'support.db');
-  
-  // Copy bundled seed database to writable /tmp on first run
-  if (!fs.existsSync(tmpDb)) {
-    if (fs.existsSync(bundledDb)) {
-      try {
-        fs.copyFileSync(bundledDb, tmpDb);
-      } catch (copyErr) {
-        // Fallback: will be initialized by initDb()
+// Initialize Database (SQLite if available, otherwise In-Memory JSON store for Vercel Node 20)
+let db;
+let isInMemory = false;
+
+if (DatabaseSync) {
+  let DB_FILE;
+  if (IS_VERCEL) {
+    const tmpDb = path.join('/tmp', 'support.db');
+    const bundledDb = path.join(__dirname, 'data', 'support.db');
+    if (!fs.existsSync(tmpDb)) {
+      if (fs.existsSync(bundledDb)) {
+        try { fs.copyFileSync(bundledDb, tmpDb); } catch (err) {}
       }
     }
-  }
-  DB_FILE = tmpDb;
-} else {
-  const DATA_DIR = path.join(__dirname, 'data');
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  DB_FILE = path.join(DATA_DIR, 'support.db');
-}
-
-// Initialize SQLite database
-const db = new DatabaseSync(DB_FILE);
-
-// Set appropriate journal mode (DELETE for serverless /tmp, WAL for standard servers)
-try {
-  if (IS_VERCEL) {
-    db.exec('PRAGMA journal_mode = DELETE;');
+    DB_FILE = tmpDb;
   } else {
-    db.exec('PRAGMA journal_mode = WAL;');
+    const DATA_DIR = path.join(__dirname, 'data');
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    DB_FILE = path.join(DATA_DIR, 'support.db');
   }
-  db.exec('PRAGMA foreign_keys = ON;');
-} catch (e) {
-  // Fallback if pragma is restricted
+
+  db = new DatabaseSync(DB_FILE);
+
+  try {
+    if (IS_VERCEL) {
+      db.exec('PRAGMA journal_mode = DELETE;');
+    } else {
+      db.exec('PRAGMA journal_mode = WAL;');
+    }
+    db.exec('PRAGMA foreign_keys = ON;');
+  } catch (e) {}
+} else {
+  // --- IN-MEMORY FALLBACK FOR VERCEL RUNTIMES WITHOUT node:sqlite ---
+  isInMemory = true;
+  console.log('[Notice] Running in-memory store fallback');
+
+  const memoryStore = {
+    categories: [],
+    macros: [],
+    admin_users: [],
+    admin_tokens: [],
+    catSeq: 1,
+    macroSeq: 1
+  };
+
+  db = {
+    exec(sql) {},
+    prepare(sql) {
+      const trimmed = sql.trim();
+      return {
+        all(...params) {
+          if (trimmed.includes('FROM macros') && trimmed.includes('is_active = 1')) {
+            return memoryStore.macros.filter(m => m.is_active === 1).sort((a,b) => b.usage_count - a.usage_count);
+          }
+          if (trimmed.includes('FROM macros m') && trimmed.includes('JOIN categories')) {
+            return memoryStore.macros.map(m => {
+              const cat = memoryStore.categories.find(c => c.id === m.category_id) || {};
+              return { ...m, category_name: cat.name || 'Umumiy', category_icon: cat.icon || '📁' };
+            }).sort((a,b) => b.id - a.id);
+          }
+          if (trimmed.includes('FROM categories c')) {
+            return memoryStore.categories.map(c => {
+              const count = memoryStore.macros.filter(m => m.category_id === c.id && m.is_active === 1).length;
+              return { ...c, macro_count: count };
+            });
+          }
+          if (trimmed.includes('FROM categories ORDER BY id ASC')) {
+            return memoryStore.categories;
+          }
+          if (trimmed.includes('FROM macros ORDER BY id ASC')) {
+            return memoryStore.macros;
+          }
+          if (trimmed.includes('ORDER BY usage_count DESC LIMIT 5')) {
+            return [...memoryStore.macros].sort((a,b) => (b.usage_count||0) - (a.usage_count||0)).slice(0, 5);
+          }
+          if (trimmed.includes('ORDER BY id DESC LIMIT 5')) {
+            return [...memoryStore.macros].sort((a,b) => b.id - a.id).slice(0, 5);
+          }
+          return [];
+        },
+        get(...params) {
+          if (trimmed.includes('SELECT COUNT(*) as c FROM categories')) {
+            return { c: memoryStore.categories.length };
+          }
+          if (trimmed.includes('SELECT COUNT(*) as c FROM macros WHERE is_active = 1')) {
+            return { c: memoryStore.macros.filter(m => m.is_active === 1).length };
+          }
+          if (trimmed.includes('SELECT COUNT(*) as c FROM macros WHERE category_id = ?')) {
+            return { c: memoryStore.macros.filter(m => m.category_id === Number(params[0])).length };
+          }
+          if (trimmed.includes('SELECT COUNT(*) as c FROM macros')) {
+            return { c: memoryStore.macros.length };
+          }
+          if (trimmed.includes('SELECT COALESCE(SUM(usage_count), 0) as s FROM macros')) {
+            const s = memoryStore.macros.reduce((acc, m) => acc + (m.usage_count || 0), 0);
+            return { s };
+          }
+          if (trimmed.includes('FROM admin_users WHERE username = ?')) {
+            return memoryStore.admin_users.find(u => u.username === params[0]);
+          }
+          if (trimmed.includes('FROM admin_tokens WHERE token = ?')) {
+            const token = params[0];
+            const session = memoryStore.admin_tokens.find(t => t.token === token);
+            if (!session) return null;
+            if (session.expires_at && session.expires_at < Date.now()) {
+              memoryStore.admin_tokens = memoryStore.admin_tokens.filter(t => t.token !== token);
+              return null;
+            }
+            return session;
+          }
+          if (trimmed.includes('SELECT is_active FROM macros WHERE id = ?')) {
+            const m = memoryStore.macros.find(x => x.id === Number(params[0]));
+            return m ? { is_active: m.is_active } : null;
+          }
+          if (trimmed.includes('SELECT * FROM macros WHERE id = ?')) {
+            return memoryStore.macros.find(x => x.id === Number(params[0])) || null;
+          }
+          if (trimmed.includes('SELECT id FROM categories WHERE name = ?')) {
+            const cat = memoryStore.categories.find(c => c.name === params[0]);
+            return cat ? { id: cat.id } : null;
+          }
+          return null;
+        },
+        run(...params) {
+          if (trimmed.startsWith('INSERT INTO admin_users')) {
+            memoryStore.admin_users.push({ username: params[0], password_hash: params[1] });
+            return { lastInsertRowid: 1 };
+          }
+          if (trimmed.startsWith('INSERT INTO admin_tokens')) {
+            memoryStore.admin_tokens.push({ token: params[0], username: params[1], expires_at: params[2] });
+            return { lastInsertRowid: 1 };
+          }
+          if (trimmed.startsWith('DELETE FROM admin_tokens WHERE token = ?')) {
+            memoryStore.admin_tokens = memoryStore.admin_tokens.filter(t => t.token !== params[0]);
+            return {};
+          }
+          if (trimmed.startsWith('INSERT INTO categories')) {
+            const id = memoryStore.catSeq++;
+            memoryStore.categories.push({ id, name: params[0], icon: params[1] || '📁' });
+            return { lastInsertRowid: id };
+          }
+          if (trimmed.startsWith('INSERT INTO macros')) {
+            const id = memoryStore.macroSeq++;
+            memoryStore.macros.push({
+              id,
+              category_id: Number(params[0]),
+              title: params[1],
+              problem_description: params[2],
+              operator_action: params[3],
+              response_template: params[4],
+              language: params[5],
+              keywords: params[6],
+              notes: params[7],
+              is_active: params[8] !== undefined ? params[8] : 1,
+              usage_count: params[9] !== undefined ? params[9] : 0,
+              created_at: new Date().toISOString()
+            });
+            return { lastInsertRowid: id };
+          }
+          if (trimmed.startsWith('UPDATE macros SET usage_count = usage_count + 1 WHERE id = ?')) {
+            const m = memoryStore.macros.find(x => x.id === Number(params[0]));
+            if (m) m.usage_count = (m.usage_count || 0) + 1;
+            return {};
+          }
+          if (trimmed.startsWith('UPDATE macros SET category_id = ?')) {
+            const m = memoryStore.macros.find(x => x.id === Number(params[params.length - 1]));
+            if (m) {
+              m.category_id = Number(params[0]);
+              m.title = params[1];
+              m.problem_description = params[2];
+              m.operator_action = params[3];
+              m.response_template = params[4];
+              m.language = params[5];
+              m.keywords = params[6];
+              m.notes = params[7];
+              m.is_active = Number(params[8]);
+            }
+            return {};
+          }
+          if (trimmed.startsWith('UPDATE macros SET is_active = ? WHERE id = ?')) {
+            const m = memoryStore.macros.find(x => x.id === Number(params[1]));
+            if (m) m.is_active = Number(params[0]);
+            return {};
+          }
+          if (trimmed.startsWith('DELETE FROM macros WHERE id = ?')) {
+            memoryStore.macros = memoryStore.macros.filter(x => x.id !== Number(params[0]));
+            return {};
+          }
+          if (trimmed.startsWith('UPDATE categories SET name = ?')) {
+            const c = memoryStore.categories.find(x => x.id === Number(params[2]));
+            if (c) { c.name = params[0]; c.icon = params[1]; }
+            return {};
+          }
+          if (trimmed.startsWith('DELETE FROM categories WHERE id = ?')) {
+            memoryStore.categories = memoryStore.categories.filter(x => x.id !== Number(params[0]));
+            return {};
+          }
+          if (trimmed.startsWith('UPDATE admin_users SET password_hash = ?')) {
+            const u = memoryStore.admin_users.find(x => x.username === params[1]);
+            if (u) u.password_hash = params[0];
+            return {};
+          }
+          return {};
+        }
+      };
+    }
+  };
 }
 
 // In-memory rate limiter for login attempts (brute force protection)
@@ -902,13 +1078,16 @@ server.on('error', (err) => {
     console.warn(`[Port ${PORT} in use, trying ${PORT + 1}...]`);
     PORT += 1;
     startServer(PORT);
-
-module.exports = server;
   } else {
     console.error('Server error:', err);
   }
 });
 
-startServer(PORT);
+// Run standalone server on local/Render, but export handler for Vercel Serverless
+if (!IS_VERCEL) {
+  startServer(PORT);
+}
 
-module.exports = server;
+module.exports = (req, res) => {
+  server.emit('request', req, res);
+};
