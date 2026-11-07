@@ -195,6 +195,11 @@ function openLoginModal() {
 }
 
 function openAdminPanel() {
+  // Reset admin filters to show all macros by default
+  if (AdminDOM.adminStatusFilter) AdminDOM.adminStatusFilter.value = 'all';
+  if (AdminDOM.adminCategoryFilter) AdminDOM.adminCategoryFilter.value = 'all';
+  if (AdminDOM.adminMacroSearch) AdminDOM.adminMacroSearch.value = '';
+
   AdminDOM.adminPanelModal.style.display = 'flex';
   loadAdminDashboard();
   loadAdminMacros();
