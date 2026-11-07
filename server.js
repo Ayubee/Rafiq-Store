@@ -23,6 +23,49 @@ if (!fs.existsSync(DATA_DIR)) {
 // Initialize SQLite database
 const db = new DatabaseSync(DB_FILE);
 
+// Enable WAL mode for high performance concurrent reads and foreign keys
+try {
+  db.exec('PRAGMA journal_mode = WAL;');
+  db.exec('PRAGMA foreign_keys = ON;');
+} catch (e) {
+  // Fallback if pragma is restricted
+}
+
+// In-memory rate limiter for login attempts (brute force protection)
+const loginAttempts = new Map(); // IP -> { count, lockedUntil }
+
+function checkLoginRateLimit(ip) {
+  const now = Date.now();
+  const record = loginAttempts.get(ip);
+  if (!record) return true;
+
+  if (record.lockedUntil && record.lockedUntil > now) {
+    const remainingSec = Math.ceil((record.lockedUntil - now) / 1000);
+    throw new Error(`Ko‘p marta noto‘g‘ri urinish. Iltimos, ${remainingSec} soniya kuting.`);
+  }
+
+  if (record.lockedUntil && record.lockedUntil <= now) {
+    loginAttempts.delete(ip);
+    return true;
+  }
+
+  return true;
+}
+
+function recordFailedLogin(ip) {
+  const now = Date.now();
+  const record = loginAttempts.get(ip) || { count: 0 };
+  record.count += 1;
+  if (record.count >= 5) {
+    record.lockedUntil = now + 60 * 1000; // Lock for 60 seconds
+  }
+  loginAttempts.set(ip, record);
+}
+
+function clearFailedLogin(ip) {
+  loginAttempts.delete(ip);
+}
+
 // Setup database tables and indexes
 function initDb() {
   db.exec(`
@@ -60,7 +103,8 @@ function initDb() {
     CREATE TABLE IF NOT EXISTS admin_tokens (
       token TEXT PRIMARY KEY,
       username TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_macros_category ON macros(category_id);
@@ -213,15 +257,22 @@ function seedInitialData() {
   }
 }
 
-// Admin Auth Helper
+// Admin Auth Helper with Token Expiration Check
 function authenticateAdmin(req) {
   const authHeader = req.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return false;
   }
   const token = authHeader.substring(7).trim();
-  const session = db.prepare('SELECT username FROM admin_tokens WHERE token = ?').get(token);
-  return Boolean(session);
+  try {
+    const session = db.prepare(`
+      SELECT username FROM admin_tokens 
+      WHERE token = ? AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+    `).get(token);
+    return Boolean(session);
+  } catch (err) {
+    return false;
+  }
 }
 
 // Request Body Parser Helper
@@ -321,9 +372,12 @@ const server = http.createServer(async (req, res) => {
 
   // --- ADMIN AUTHENTICATION ---
 
-  // Admin login
+  // Admin login with Rate Limiting & Token Expiration
   if (method === 'POST' && pathname === '/api/admin/login') {
+    const clientIp = req.socket.remoteAddress || '127.0.0.1';
     try {
+      checkLoginRateLimit(clientIp);
+
       const { username, password } = await parseJsonBody(req);
       if (!username || !password) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -335,18 +389,30 @@ const server = http.createServer(async (req, res) => {
       const hash = crypto.createHash('sha256').update(password).digest('hex');
 
       if (!user || user.password_hash !== hash) {
+        recordFailedLogin(clientIp);
         res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Foydalanuvchi nomi yoki parol xato' }));
+        res.end(JSON.stringify({ error: 'Foydalanuvchi nomi yoki parol noto‘g‘ri' }));
         return;
       }
 
+      // Successful login: reset failed attempts
+      clearFailedLogin(clientIp);
+
       const token = crypto.randomBytes(32).toString('hex');
-      db.prepare('INSERT INTO admin_tokens (token, username) VALUES (?, ?)').run(token, username);
+      // 24 hours expiry
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      
+      try {
+        db.prepare('INSERT INTO admin_tokens (token, username, expires_at) VALUES (?, ?, ?)').run(token, username, expiresAt);
+      } catch (tokenErr) {
+        // Fallback if column not yet migrated
+        db.prepare('INSERT INTO admin_tokens (token, username) VALUES (?, ?)').run(token, username);
+      }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, token, username }));
+      res.end(JSON.stringify({ success: true, token, username, expiresAt }));
     } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(429, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: err.message }));
     }
     return;
@@ -377,6 +443,83 @@ const server = http.createServer(async (req, res) => {
     if (!authenticateAdmin(req)) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Ruxsat yo‘q: Admin autentifikatsiyasi talab qilinadi' }));
+      return;
+    }
+
+    // Backup Database (Export full JSON)
+    if (method === 'GET' && pathname === '/api/admin/backup') {
+      try {
+        const categories = db.prepare('SELECT * FROM categories ORDER BY id ASC').all();
+        const macros = db.prepare('SELECT * FROM macros ORDER BY id ASC').all();
+        const backupData = {
+          version: '1.0',
+          exported_at: new Date().toISOString(),
+          categories,
+          macros
+        };
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Content-Disposition': 'attachment; filename="support_macros_backup.json"'
+        });
+        res.end(JSON.stringify(backupData, null, 2));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+      return;
+    }
+
+    // Restore Database (Import from JSON)
+    if (method === 'POST' && pathname === '/api/admin/restore') {
+      try {
+        const payload = await parseJsonBody(req);
+        if (!payload.categories || !payload.macros) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Yaroqsiz backup fayli formati' }));
+          return;
+        }
+
+        // Import categories and map old IDs to new IDs
+        const catMap = {};
+        const insertCat = db.prepare('INSERT OR IGNORE INTO categories (name, icon) VALUES (?, ?)');
+        const getCat = db.prepare('SELECT id FROM categories WHERE name = ?');
+
+        for (const cat of payload.categories) {
+          insertCat.run(cat.name, cat.icon || '📁');
+          const existing = getCat.get(cat.name);
+          if (existing) catMap[cat.id] = existing.id;
+        }
+
+        // Import macros
+        const insertMacro = db.prepare(`
+          INSERT INTO macros (category_id, title, problem_description, operator_action, response_template, language, keywords, notes, is_active, usage_count)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        let importedCount = 0;
+        for (const m of payload.macros) {
+          const targetCatId = catMap[m.category_id] || 1;
+          insertMacro.run(
+            targetCatId,
+            m.title,
+            m.problem_description || '',
+            m.operator_action || '',
+            m.response_template,
+            m.language || 'UZ',
+            m.keywords || '',
+            m.notes || '',
+            m.is_active !== undefined ? m.is_active : 1,
+            m.usage_count || 0
+          );
+          importedCount += 1;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, count: importedCount }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
       return;
     }
 

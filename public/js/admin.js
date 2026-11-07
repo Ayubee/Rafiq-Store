@@ -693,6 +693,77 @@ async function handlePasswordChange(e) {
   }
 }
 
+// Backup & Restore Handlers
+document.getElementById('downloadBackupBtn')?.addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/admin/backup', {
+      headers: { 'Authorization': `Bearer ${AdminState.token}` }
+    });
+    if (!res.ok) {
+      alert('Backup yuklab olishda xatolik yuz berdi');
+      return;
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `support_macros_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    window.SupportApp?.showToast('Zaxira nusxasi yuklab olindi!', 'success');
+  } catch (err) {
+    console.error('Backup error:', err);
+  }
+});
+
+document.getElementById('restoreBackupBtn')?.addEventListener('click', async () => {
+  const fileInput = document.getElementById('restoreFileInput');
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+    alert('Iltimos, avval .json backup faylini tanlang!');
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  reader.onload = async (event) => {
+    try {
+      const json = JSON.parse(event.target.result);
+      const res = await fetch('/api/admin/restore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${AdminState.token}`
+        },
+        body: JSON.stringify(json)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Qayta tiklashda xatolik');
+        return;
+      }
+
+      window.SupportApp?.showToast(`${data.count} ta makros muvaffaqiyatli tiklandi!`, 'success');
+      fileInput.value = '';
+
+      await Promise.all([
+        loadAdminCategories(),
+        loadAdminMacros(),
+        loadAdminDashboard(),
+        window.SupportApp?.loadData()
+      ]);
+    } catch (err) {
+      console.error('Restore parse error:', err);
+      alert('Fayl formati noto‘g‘ri yoki yaroqsiz JSON');
+    }
+  };
+
+  reader.readAsText(file);
+});
+
 // Setup form listeners
 document.getElementById('editCategoryForm')?.addEventListener('submit', saveEditCategory);
 document.getElementById('changePasswordForm')?.addEventListener('submit', handlePasswordChange);
