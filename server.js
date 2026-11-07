@@ -9,8 +9,9 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 
-let PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
-const DATA_DIR = path.join(__dirname, 'data');
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
+// Support Vercel serverless environment (writable /tmp)
+const DATA_DIR = process.env.VERCEL ? '/tmp' : path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'support.db');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
@@ -697,9 +698,13 @@ server.on('error', (err) => {
     console.warn(`[Port ${PORT} in use, trying ${PORT + 1}...]`);
     PORT += 1;
     startServer(PORT);
+
+module.exports = server;
   } else {
     console.error('Server error:', err);
   }
 });
 
 startServer(PORT);
+
+module.exports = server;
