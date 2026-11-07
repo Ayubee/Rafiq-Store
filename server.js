@@ -380,6 +380,38 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Change password endpoint
+    if (method === 'POST' && pathname === '/api/admin/change-password') {
+      try {
+        const { currentPassword, newPassword } = await parseJsonBody(req);
+        if (!currentPassword || !newPassword || newPassword.length < 6) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Yangi parol kamida 6 ta belgidan iborat bo‘lishi kerak' }));
+          return;
+        }
+
+        // Get admin user
+        const user = db.prepare('SELECT id, password_hash FROM admin_users WHERE username = ?').get('admin');
+        const currentHash = crypto.createHash('sha256').update(currentPassword).digest('hex');
+
+        if (!user || user.password_hash !== currentHash) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Joriy parol noto‘g‘ri kiritildi' }));
+          return;
+        }
+
+        const newHash = crypto.createHash('sha256').update(newPassword).digest('hex');
+        db.prepare('UPDATE admin_users SET password_hash = ? WHERE username = ?').run(newHash, 'admin');
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: 'Parol muvaffaqiyatli yangilandi' }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+      return;
+    }
+
     // 1. Dashboard stats
     if (method === 'GET' && pathname === '/api/admin/stats') {
       try {

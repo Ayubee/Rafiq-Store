@@ -193,6 +193,7 @@
         <button class="admin-tab active" data-tab="tab-dashboard">📊 Dashboard</button>
         <button class="admin-tab" data-tab="tab-macros">📋 Makroslar boshqaruvi</button>
         <button class="admin-tab" data-tab="tab-categories">🏷️ Kategoriyalar</button>
+        <button class="admin-tab" data-tab="tab-settings">🔒 Sozlamalar</button>
       </div>
 
       <div class="modal-body admin-modal-body">
@@ -297,6 +298,30 @@
             </table>
           </div>
         </div>
+
+        <!-- Tab 4: Sozlamalar & Xavfsizlik -->
+        <div class="tab-pane" id="tab-settings">
+          <div class="settings-box">
+            <h4>🔐 Admin parolini o‘zgartirish</h4>
+            <p class="form-hint" style="margin-bottom: 1rem;">Tizim xavfsizligi uchun admin parolini yangilang.</p>
+            <form id="changePasswordForm" style="max-width: 400px; display: flex; flex-direction: column; gap: 0.75rem;">
+              <div class="form-group">
+                <label for="currentAdminPass">Joriy parol</label>
+                <input type="password" id="currentAdminPass" required placeholder="Hozirgi parolingiz">
+              </div>
+              <div class="form-group">
+                <label for="newAdminPass">Yangi parol</label>
+                <input type="password" id="newAdminPass" required placeholder="Yangi kuchli parol (kamida 6 ta belgi)">
+              </div>
+              <div class="form-group">
+                <label for="confirmAdminPass">Yangi parolni tasdiqlang</label>
+                <input type="password" id="confirmAdminPass" required placeholder="Parolni qayta tering">
+              </div>
+              <div id="passwordChangeMsg" style="display:none; font-size: 0.85rem; padding: 0.5rem; border-radius: var(--radius-sm);"></div>
+              <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Parolni yangilash</button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -371,6 +396,36 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" data-close-modal="macroFormModal">Bekor qilish</button>
           <button type="submit" class="btn btn-primary" id="saveMacroSubmitBtn">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Category Modal Dialog -->
+  <div class="modal-backdrop" id="editCategoryModal" style="display:none;">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="modal-icon">✏️</span>
+          <h3>Kategoriyani tahrirlash</h3>
+        </div>
+        <button class="modal-close" data-close-modal="editCategoryModal">✕</button>
+      </div>
+      <form id="editCategoryForm">
+        <input type="hidden" id="editCategoryId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="editCategoryName">Kategoriya nomi <span class="required">*</span></label>
+            <input type="text" id="editCategoryName" required placeholder="Kategoriya nomi">
+          </div>
+          <div class="form-group">
+            <label for="editCategoryIcon">Belgisi (Icon / Emoji)</label>
+            <input type="text" id="editCategoryIcon" maxlength="4" placeholder="📁" style="width: 100px;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="editCategoryModal">Bekor qilish</button>
+          <button type="submit" class="btn btn-primary">Saqlash</button>
         </div>
       </form>
     </div>

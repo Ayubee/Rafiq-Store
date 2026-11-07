@@ -388,7 +388,7 @@ function renderAdminCategoriesTable() {
       <td><span class="count-badge">${cat.macro_count || 0} ta makros</span></td>
       <td>
         <div class="action-buttons">
-          <button class="btn btn-sm btn-outline" title="Tahrirlash" onclick="editCategoryPrompt(${cat.id}, '${escapeAdminHtml(cat.name)}', '${cat.icon || '📁'}')">
+          <button class="btn btn-sm btn-outline" title="Tahrirlash" onclick="openEditCategoryModal(${cat.id}, '${escapeAdminHtml(cat.name)}', '${cat.icon || '📁'}')">
             ✏️ Tahrirlash
           </button>
           <button class="btn btn-sm btn-outline" style="color: var(--danger);" title="O‘chirish" onclick="deleteCategory(${cat.id})">
@@ -579,11 +579,20 @@ async function createCategory() {
   }
 }
 
-async function editCategoryPrompt(id, currentName, currentIcon) {
-  const newName = prompt('Kategoriya yangi nomini kiriting:', currentName);
-  if (!newName || newName.trim() === '') return;
+function openEditCategoryModal(id, currentName, currentIcon) {
+  document.getElementById('editCategoryId').value = id;
+  document.getElementById('editCategoryName').value = currentName;
+  document.getElementById('editCategoryIcon').value = currentIcon || '📁';
+  document.getElementById('editCategoryModal').style.display = 'flex';
+}
 
-  const newIcon = prompt('Kategoriya belgisini (icon) kiriting:', currentIcon) || currentIcon;
+async function saveEditCategory(e) {
+  e.preventDefault();
+  const id = document.getElementById('editCategoryId').value;
+  const name = document.getElementById('editCategoryName').value.trim();
+  const icon = document.getElementById('editCategoryIcon').value.trim() || '📁';
+
+  if (!name) return;
 
   try {
     const res = await fetch(`/api/admin/categories/${id}`, {
@@ -592,16 +601,20 @@ async function editCategoryPrompt(id, currentName, currentIcon) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${AdminState.token}`
       },
-      body: JSON.stringify({ name: newName.trim(), icon: newIcon.trim() })
+      body: JSON.stringify({ name, icon })
     });
 
     if (res.ok) {
-      window.SupportApp?.showToast('Kategoriya yangilandi!', 'success');
+      closeModal('editCategoryModal');
+      window.SupportApp?.showToast('Kategoriya muvaffaqiyatli yangilandi!', 'success');
       await Promise.all([
         loadAdminCategories(),
         loadAdminMacros(),
         window.SupportApp?.loadData()
       ]);
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Yangilashda xatolik yuz berdi');
     }
   } catch (err) {
     console.error('Error updating category:', err);
@@ -634,6 +647,56 @@ async function deleteCategory(id) {
   }
 }
 
+// Password Change Handler
+async function handlePasswordChange(e) {
+  e.preventDefault();
+  const currentPass = document.getElementById('currentAdminPass').value;
+  const newPass = document.getElementById('newAdminPass').value;
+  const confirmPass = document.getElementById('confirmAdminPass').value;
+  const msgEl = document.getElementById('passwordChangeMsg');
+
+  if (newPass !== confirmPass) {
+    msgEl.textContent = 'Yangi parollar bir-biriga mos kelmadi!';
+    msgEl.style.backgroundColor = 'var(--danger-bg)';
+    msgEl.style.color = 'var(--danger)';
+    msgEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AdminState.token}`
+      },
+      body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      msgEl.textContent = data.error || 'Parolni o‘zgartirishda xatolik';
+      msgEl.style.backgroundColor = 'var(--danger-bg)';
+      msgEl.style.color = 'var(--danger)';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    msgEl.textContent = 'Parol muvaffaqiyatli yangilandi!';
+    msgEl.style.backgroundColor = 'var(--success-bg)';
+    msgEl.style.color = 'var(--success)';
+    msgEl.style.display = 'block';
+    document.getElementById('changePasswordForm').reset();
+    window.SupportApp?.showToast('Admin paroli yangilandi!', 'success');
+  } catch (err) {
+    console.error('Password change error:', err);
+  }
+}
+
+// Setup form listeners
+document.getElementById('editCategoryForm')?.addEventListener('submit', saveEditCategory);
+document.getElementById('changePasswordForm')?.addEventListener('submit', handlePasswordChange);
+
 function escapeAdminHtml(str) {
   if (!str) return '';
   return String(str)
@@ -649,5 +712,5 @@ window.openMacroModal = openMacroModal;
 window.toggleMacroStatus = toggleMacroStatus;
 window.duplicateMacro = duplicateMacro;
 window.deleteMacro = deleteMacro;
-window.editCategoryPrompt = editCategoryPrompt;
+window.openEditCategoryModal = openEditCategoryModal;
 window.deleteCategory = deleteCategory;
