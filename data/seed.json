@@ -1,0 +1,118 @@
+{
+  "categories": [
+    { "id": 1, "name": "Balans va to‘lovlar", "icon": "💳" },
+    { "id": 2, "name": "Foto nazorat", "icon": "📷" },
+    { "id": 3, "name": "Buyurtmalar", "icon": "🚕" },
+    { "id": 4, "name": "Akkaunt", "icon": "👤" },
+    { "id": 5, "name": "Bonus va promokodlar", "icon": "🎁" },
+    { "id": 6, "name": "Texnik muammolar", "icon": "⚙️" },
+    { "id": 7, "name": "Hujjatlar", "icon": "📄" },
+    { "id": 8, "name": "Boshqa mavzular", "icon": "💬" }
+  ],
+  "macros": [
+    {
+      "id": 1,
+      "category_id": 1,
+      "title": "Balans to‘ldirilganda mablag‘ hisobga o‘tmay qolishi",
+      "problem_description": "Haydovchi Payme yoki Click orqali balans to‘ldirgan, pul kartadan yechilgan, ammo ilova balansida ko‘rinmayapti.",
+      "operator_action": "1. Haydovchining telefon raqamini va to‘lov kvitansiyasini (chek) so‘rang.\n2. Billing bo‘limida tranzaksiya ID si bo‘yicha to‘lov holatini tekshiring.\n3. Agar tranzaksiya kutish holatida bo‘lsa, bank processing yangilanishini kuting yoki qo‘lda tasdiqlang.",
+      "response_template": "Assalomu alaykum! To‘lov kvitansiyasini (chek) ushbu chatga rasm ko‘rinishida yuborishingizni so‘raymiz. Biz to‘lov ID raqamini tizim orqali tekshirib, 10-15 daqiqa ichida balansingizga mablag‘ni aks ettirib beramiz. Keltirilgan noqulaylik uchun uzr so‘raymiz.",
+      "language": "UZ",
+      "keywords": "balans, to‘lov, payme, click, pul tushmadi, chek, kvitansiya",
+      "notes": "Tranzaksiya 30 daqiqadan oshgan bo‘lsa moliya bo‘limiga xabar yuborish kerak.",
+      "is_active": 1,
+      "usage_count": 42
+    },
+    {
+      "id": 2,
+      "category_id": 1,
+      "title": "Деньги списаны с карты, но баланс не пополнился",
+      "problem_description": "Водитель пополнил баланс через банковскую карту, деньги списались, но на балансе приложения не отображаются.",
+      "operator_action": "1. Запросите у водителя номер телефона и квитанцию (чек) об оплате.\n2. Проверьте ID транзакции в биллинге.\n3. При успешном статусе в банке подтвердите зачисление вручную.",
+      "response_template": "Здравствуйте! Пожалуйста, отправьте квитанцию или скриншот чека об оплате в этот чат. Мы сверим номер транзакции с банковской системой и зачислим средства на ваш баланс в течение 10–15 минут. Приносим извинения за временные неудобства.",
+      "language": "RU",
+      "keywords": "баланс, оплата, чек, деньги не поступили, пополнение",
+      "notes": "Если банк отклонил платёж, уведомить водителя о возврате в течение 24 часов.",
+      "is_active": 1,
+      "usage_count": 28
+    },
+    {
+      "id": 3,
+      "category_id": 2,
+      "title": "Avtomobil foto nazoratidan o‘ta olmaslik",
+      "problem_description": "Haydovchi avtomobil rasmlarini yuklagan, biroq tizim rad etgan yoki uzoq vaqt tekshirilmoqda.",
+      "operator_action": "1. Haydovchi profilidagi oxirgi yuborilgan rasmlarni oching.\n2. Davlat raqami, mashina tozaligi va salon holatini ko‘zdan kechiring.\n3. Qaysi burchak xato tushirilganligini aniqlang va qayta topshirish talabini tushuntiring.",
+      "response_template": "Assalomu alaykum! Foto nazorat rasmlaringiz tekshirildi. Avtomobil davlat raqami xira tushganligi yoki mashina toza emasligi sababli rasm rad etilgan. Iltimos, avtomobilni yorug‘ joyda, davlat raqami va barcha to‘rtta tomoni aniq ko‘rinadigan qilib qayta suratga olib ilovaga yuklang.",
+      "language": "UZ",
+      "keywords": "foto nazorat, mashina rasmi, rad etildi, tekshiruv, sifat",
+      "notes": "Besh marta rad etilsa xizmat ko‘rsatish markaziga yo‘naltiriladi.",
+      "is_active": 1,
+      "usage_count": 35
+    },
+    {
+      "id": 4,
+      "category_id": 2,
+      "title": "Не пройден фотоконтроль автомобиля",
+      "problem_description": "Водитель загрузил фото авто, но статус отклонён модератором.",
+      "operator_action": "1. Откройте в админке фотографии водителя.\n2. Выявите причину отказа (грязь, блик на номере, посторонние предметы в салоне).\n3. Укажите точную причину водителю.",
+      "response_template": "Здравствуйте! Ваш фотоконтроль был отклонен, так как государственные номера или детали кузова видны недостаточно четко. Пожалуйста, сделайте новые снимки в освещенном месте, без бликов и посторонних предметов, затем повторно отправьте через приложение.",
+      "language": "RU",
+      "keywords": "фотоконтроль, фото авто, отклонено, модерация, номера",
+      "notes": "Напоминать водителю протирать госномер перед съемкой.",
+      "is_active": 1,
+      "usage_count": 19
+    },
+    {
+      "id": 5,
+      "category_id": 3,
+      "title": "Mijoz sababsiz buyurtmani bekor qildi (Kompensatsiya)",
+      "problem_description": "Haydovchi buyurtma manziliga yetib kelganida mijoz buyurtmani bekor qildi, haydovchi sarflangan vaqt va yoqilg‘i uchun kompensatsiya so‘ramoqda.",
+      "operator_action": "1. Buyurtma tarixi va haydovchining GPS marshrutini tekshiring.\n2. Haydovchi yetib borish tugmasini bosganidan so‘ng mijoz bekor qilganini tasdiqlang.\n3. Qoidalarga asosan bekor qilish kompensatsiyasini hisoblang va hisobga o‘tkazing.",
+      "response_template": "Assalomu alaykum! Buyurtmangiz tafsilotlari va GPS koordinatalari tekshirildi. Siz ko‘rsatilgan manzilga o‘z vaqtida yetib borganingiz tasdiqlandi. Mijoz tomonidan asossiz bekor qilinganligi sababli, balansingizga bekor qilish kompensatsiyasi o‘tkazib berildi. Yaxshi ish va xavfsiz yo‘l tilaymiz!",
+      "language": "UZ",
+      "keywords": "bekor qilindi, mijoz bekor qildi, kompensatsiya, yetib keldim, yo‘l haqi",
+      "notes": "Yetib bormasdan bosilgan bo‘lsa kompensatsiya berilmaydi.",
+      "is_active": 1,
+      "usage_count": 51
+    },
+    {
+      "id": 6,
+      "category_id": 4,
+      "title": "Ilovaga kirishda SMS kod kelmasligi",
+      "problem_description": "Foydalanuvchi yoki haydovchi telefon raqamini kiritganda tasdiqlash SMS xabari kelmayapti.",
+      "operator_action": "1. Raqam to‘g‘ri terilganini va aloqa operatori SMS shlyuz holatini tekshiring.\n2. Qora ro‘yxatda (spam block) emasligini aniqlang.\n3. Foydalanuvchiga telefonni qayta ishga tushirish yoki 2 daqiqadan so‘ng qayta urinishni tavsiya qiling.",
+      "response_template": "Assalomu alaykum! Iltimos, kiritilgan telefon raqami to‘g‘riligini va telefoningizda aloqa signali mavjudligini tekshiring. Ba’zan uyali aloqa operatorlari tomonidan SMS yuborishda qisqa muddatli kechikishlar kuzatiladi. Iltimos, 2-3 daqiqa kutib, ilovani qayta oching va yangi kod so‘rang.",
+      "language": "UZ",
+      "keywords": "sms, kod, kira olmayapman, login, autentifikatsiya, parol",
+      "notes": "Agar Ucell/Beeline da ommaviy muammo bo‘lsa, status-sahifaga qarang.",
+      "is_active": 1,
+      "usage_count": 24
+    },
+    {
+      "id": 7,
+      "category_id": 5,
+      "title": "Promokod aktivlashtirilganda xatolik berishi",
+      "problem_description": "Mijoz promokodni kiritganda \"Yaroqsiz kod\" yoki \"Muddati o‘tgan\" xatosi chiqmoqda.",
+      "operator_action": "1. Promokod matnini va amal qilish muddatini marketing bazasidan tekshiring.\n2. Promokod faqat birinchi buyurtma uchun yoki ma’lum toifadagi xizmat uchun ekanligini ko‘ring.\n3. Mijozga shartlarini tushuntiring.",
+      "response_template": "Assalomu alaykum! Ushbu promokod faqat birinchi buyurtma yoki ma’lum toifadagi xizmatlar uchun amal qiladi. Iltimos, promokodni kiritishda katta-kichik harflar va bo‘sh joylar (probel) yo‘qligiga e’tibor bering. Agar aksiya muddati tugagan bo‘lsa, ilovamizning \"Aksiyalar\" bo‘limidagi faol promokodlardan foydalanishingiz mumkin.",
+      "language": "UZ",
+      "keywords": "promokod, bonus, chegirma, aksiya, xatolik",
+      "notes": "Bir martalik kod bo‘lsa, avval ishlatilganini tekshiring.",
+      "is_active": 1,
+      "usage_count": 16
+    },
+    {
+      "id": 8,
+      "category_id": 6,
+      "title": "GPS xarita joylashuvini noto‘g‘ri ko‘rsatishi",
+      "problem_description": "Ilovadagi xaritada haydovchi yoki mijoz koordinatasi sakrab ketyapti yoki qotib qolgan.",
+      "operator_action": "1. Ilova versiyasi eng oxirgisi ekanligini tekshiring.\n2. Telefonda geolokatsiya ruxsatlari \"Har doim ruxsat berilsin\" va \"Yuqori aniqlik\" rejimida ekanligini eslatib o‘ting.",
+      "response_template": "Assalomu alaykum! GPS joylashuvining aniq ishlashi uchun telefon sozlamalaridan:\n1. \"Geolokatsiya\" bo‘limida \"Yuqori aniqlik (Tochnost)\" rejimini yoqing.\n2. Ilova uchun geolokatsiyadan foydalanishga \"Har doim ruxsat\" berilganligini tekshiring.\n3. Quvvatni tejash (Energosberejeniye) rejimini o‘chirib, ilovani qayta ishga tushiring.",
+      "language": "UZ",
+      "keywords": "gps, xarita, navigator, qotib qoldi, koordinata, manzil",
+      "notes": "Xiaomi/Samsung telefonlarida foniy rejim cheklovlari tez-tez uchraydi.",
+      "is_active": 1,
+      "usage_count": 31
+    }
+  ]
+}
