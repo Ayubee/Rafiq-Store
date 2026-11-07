@@ -1,0 +1,21 @@
+{
+  "name": "support-manual-macro-manager",
+  "version": "1.0.0",
+  "description": "Fast, lightweight and modern Support Manual & Macro Manager for operators and administrators",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "support",
+    "macro-manager",
+    "helpdesk",
+    "customer-service",
+    "call-center"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="uz" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support Manual & Macro Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <div class="logo-text">
+          <h1>Support Desk</h1>
+          <span class="badge-sub">Manual & Macro Manager</span>
+        </div>
+      </div>
+      <div class="header-stats" id="quickStats">
+        <span class="stat-pill"><strong id="totalMacrosCount">0</strong> makros</span>
+        <span class="stat-pill"><strong id="totalCategoriesCount">0</strong> kategoriya</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Search focus shortcut info -->
+      <span class="shortcut-hint" title="Qidiruvga o'tish uchun Ctrl+K yoki / bosing">Ctrl + K</span>
+
+      <!-- Dark / Light toggle -->
+      <button id="themeToggleBtn" class="btn-icon" aria-label="Mavzuni almashtirish" title="Light / Dark mode">
+        <span class="theme-icon">🌙</span>
+      </button>
+
+      <!-- Admin Panel Button -->
+      <button id="adminOpenBtn" class="btn btn-outline">
+        <span class="icon">🔐</span> Admin Panel
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Layout: Sidebar + Content -->
+  <div class="main-layout">
+    <!-- Sidebar: Filters & Categories -->
+    <aside class="sidebar" id="sidebar">
+      <!-- Mobile sidebar close -->
+      <div class="sidebar-header-mobile">
+        <h3>Filtrlar</h3>
+        <button id="closeSidebarBtn" class="btn-icon">✕</button>
+      </div>
+
+      <!-- Quick views -->
+      <div class="sidebar-section">
+        <div class="section-title">Ko'rish tartibi</div>
+        <nav class="nav-list">
+          <button class="nav-item active" data-view="all">
+            <span class="nav-icon">📚</span>
+            <span class="nav-label">Barcha makroslar</span>
+            <span class="count-badge" id="countAll">0</span>
+          </button>
+          <button class="nav-item" data-view="favorites">
+            <span class="nav-icon">⭐</span>
+            <span class="nav-label">Sevimlilar</span>
+            <span class="count-badge" id="countFavorites">0</span>
+          </button>
+          <button class="nav-item" data-view="recent">
+            <span class="nav-icon">🕒</span>
+            <span class="nav-label">Oxirgi ishlatilganlar</span>
+            <span class="count-badge" id="countRecent">0</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Language selector -->
+      <div class="sidebar-section">
+        <div class="section-title">Javob tili</div>
+        <div class="segmented-control" id="langFilter">
+          <button class="segment active" data-lang="all">Barchasi</button>
+          <button class="segment" data-lang="UZ">UZ</button>
+          <button class="segment" data-lang="RU">RU</button>
+        </div>
+      </div>
+
+      <!-- Categories list -->
+      <div class="sidebar-section category-section">
+        <div class="section-title">Kategoriyalar</div>
+        <div class="nav-list" id="categoryNav">
+          <!-- Dynamically populated categories -->
+          <div class="category-loading">Yuklanmoqda...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="content-area">
+      <!-- Search & Controls Bar -->
+      <div class="search-section">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="search" 
+            id="searchInput" 
+            placeholder="Makros nomi, muammo tavsifi yoki kalit so'zlarni kiriting... (/ tugmasi)"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button id="clearSearchBtn" class="clear-btn" style="display:none;" title="Tozalash">✕</button>
+        </div>
+
+        <div class="active-filters" id="activeFilterPills">
+          <!-- Filter badges e.g. "Kategoriya: Balans", "Til: UZ" -->
+        </div>
+      </div>
+
+      <!-- Macros Grid / Container -->
+      <div class="macros-header">
+        <div class="results-info">
+          <span id="resultsCount">0 ta natija topildi</span>
+          <span id="currentFilterLabel" class="current-filter-label"></span>
+        </div>
+        <button id="mobileFilterToggle" class="btn btn-sm btn-outline mobile-only">
+          <span class="icon">⚡</span> Filtrlar
+        </button>
+      </div>
+
+      <div class="macros-grid" id="macrosGrid">
+        <!-- Dynamically populated Macro Cards -->
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="empty-icon">🔎</div>
+        <h3>Hech qanday makros topilmadi</h3>
+        <p>Qidiruv so'zini o'zgartiring yoki filtrlarni tozalang.</p>
+        <button id="resetFiltersBtn" class="btn btn-outline">Filtrlarni tozalash</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Admin Login Modal -->
+  <div class="modal-backdrop" id="adminLoginModal" style="display:none;">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="modal-icon">🔐</span>
+          <h3>Admin Panelga Kirish</h3>
+        </div>
+        <button class="modal-close" data-close-modal="adminLoginModal">✕</button>
+      </div>
+      <form id="adminLoginForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="adminUsername">Foydalanuvchi nomi</label>
+            <input type="text" id="adminUsername" required value="admin" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="adminPassword">Parol</label>
+            <input type="password" id="adminPassword" required placeholder="Admin parolini kiriting" autocomplete="current-password">
+          </div>
+          
+          <div class="form-error" id="loginError" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="adminLoginModal">Bekor qilish</button>
+          <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Kirish</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Panel Drawer / Modal (Dashboard & CRUD) -->
+  <div class="modal-backdrop" id="adminPanelModal" style="display:none;">
+    <div class="modal-card modal-xl">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="modal-icon">⚙️</span>
+          <h3>Admin Dashboard & Boshqaruv</h3>
+        </div>
+        <div class="admin-header-actions">
+          <button id="adminLogoutBtn" class="btn btn-sm btn-ghost">Chiqish 🚪</button>
+          <button class="modal-close" data-close-modal="adminPanelModal">✕</button>
+        </div>
+      </div>
+
+      <!-- Admin Tabs -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="tab-dashboard">📊 Dashboard</button>
+        <button class="admin-tab" data-tab="tab-macros">📋 Makroslar boshqaruvi</button>
+        <button class="admin-tab" data-tab="tab-categories">🏷️ Kategoriyalar</button>
+      </div>
+
+      <div class="modal-body admin-modal-body">
+        <!-- Tab 1: Dashboard -->
+        <div class="tab-pane active" id="tab-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-number" id="dashTotalMacros">0</div>
+              <div class="stat-label">Jami makroslar</div>
+            </div>
+            <div class="stat-card highlight">
+              <div class="stat-number" id="dashActiveMacros">0</div>
+              <div class="stat-label">Faol makroslar</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number" id="dashTotalCategories">0</div>
+              <div class="stat-label">Kategoriyalar soni</div>
+            </div>
+            <div class="stat-card accent">
+              <div class="stat-number" id="dashTotalUsage">0</div>
+              <div class="stat-label">Jami nusxalashlar</div>
+            </div>
+          </div>
+
+          <div class="dashboard-columns">
+            <div class="dashboard-box">
+              <h4>🔥 Eng ko'p ishlatilgan makroslar</h4>
+              <ul class="mini-list" id="dashTopMacros">
+                <li class="empty-list">Hozircha ma'lumot yo'q</li>
+              </ul>
+            </div>
+            <div class="dashboard-box">
+              <h4>✨ Oxirgi qo'shilgan makroslar</h4>
+              <ul class="mini-list" id="dashRecentCreated">
+                <li class="empty-list">Hozircha ma'lumot yo'q</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Makroslar CRUD -->
+        <div class="tab-pane" id="tab-macros">
+          <div class="admin-toolbar">
+            <div class="admin-search-wrapper">
+              <input type="search" id="adminMacroSearch" placeholder="Makroslarni qidirish..." class="admin-input-sm">
+              <select id="adminCategoryFilter" class="admin-select-sm">
+                <option value="all">Barcha kategoriyalar</option>
+              </select>
+              <select id="adminStatusFilter" class="admin-select-sm">
+                <option value="all">Barcha holatlar</option>
+                <option value="active">Faqat faollar</option>
+                <option value="inactive">Faolsizlar</option>
+              </select>
+            </div>
+            <button id="openNewMacroBtn" class="btn btn-primary">
+              <span class="icon">+</span> Yangi makros qo'shish
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="adminMacrosTable">
+              <thead>
+                <tr>
+                  <th>Nomi</th>
+                  <th>Kategoriya</th>
+                  <th>Til</th>
+                  <th>Holati</th>
+                  <th>Nusxalangan</th>
+                  <th style="text-align: right;">Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="adminMacrosTbody">
+                <!-- Rows injected by admin.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: Kategoriyalar -->
+        <div class="tab-pane" id="tab-categories">
+          <div class="admin-toolbar">
+            <form id="newCategoryForm" class="category-create-inline">
+              <input type="text" id="newCategoryName" placeholder="Yangi kategoriya nomi" required class="admin-input">
+              <input type="text" id="newCategoryIcon" placeholder="Belgisi (masalan: 🚗, 💳)" maxlength="4" style="width: 80px;" class="admin-input text-center">
+              <button type="submit" class="btn btn-primary">+ Kategoriya yaratish</button>
+            </form>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="adminCategoriesTable">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">Icon</th>
+                  <th>Kategoriya nomi</th>
+                  <th>Makroslar soni</th>
+                  <th style="text-align: right;">Amallar</th>
+                </tr>
+              </thead>
+              <tbody id="adminCategoriesTbody">
+                <!-- Category rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Macro Modal Form -->
+  <div class="modal-backdrop" id="macroFormModal" style="display:none;">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="modal-icon" id="macroModalIcon">📝</span>
+          <h3 id="macroModalTitle">Yangi makros qo'shish</h3>
+        </div>
+        <button class="modal-close" data-close-modal="macroFormModal">✕</button>
+      </div>
+      <form id="macroEditorForm">
+        <input type="hidden" id="editMacroId" value="">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="macroTitle">Makros nomi <span class="required">*</span></label>
+              <input type="text" id="macroTitle" required placeholder="Masalan: Balans to'ldirish muammosi">
+            </div>
+            <div class="form-group flex-1">
+              <label for="macroCategory">Kategoriya <span class="required">*</span></label>
+              <select id="macroCategory" required>
+                <!-- populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="macroLanguage">Til <span class="required">*</span></label>
+              <select id="macroLanguage" required>
+                <option value="UZ">O'zbekcha (UZ)</option>
+                <option value="RU">Ruscha (RU)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="macroProblem">Muammo tavsifi <span class="required">*</span></label>
+            <textarea id="macroProblem" rows="2" required placeholder="Mijoz yoki haydovchining murojaati mazmuni..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="macroOperatorAction">Operator bajarishi kerak bo'lgan harakatlar <span class="required">*</span></label>
+            <textarea id="macroOperatorAction" rows="2" required placeholder="Masalan: 1. CRM da ID ni tekshirish. 2. To'lov tizimi statusini ko'rish..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="macroResponse">Mijozga yuboriladigan tayyor javob <span class="required">*</span></label>
+            <textarea id="macroResponse" rows="4" required placeholder="Operator nusxalab mijozga yuboradigan to'liq matn..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="macroKeywords">Kalit so'zlar (vergul bilan)</label>
+              <input type="text" id="macroKeywords" placeholder="balans, to'lov, payme, click, tushmadi">
+            </div>
+            <div class="form-group flex-1">
+              <label for="macroStatus">Holat</label>
+              <select id="macroStatus">
+                <option value="1">Faol (Active)</option>
+                <option value="0">Faolsiz (Inactive)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="macroNotes">Qo'shimcha izoh (ixtiyoriy)</label>
+            <input type="text" id="macroNotes" placeholder="Faqat operatorlar ko'rishi uchun eslatma...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="macroFormModal">Bekor qilish</button>
+          <button type="submit" class="btn btn-primary" id="saveMacroSubmitBtn">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
