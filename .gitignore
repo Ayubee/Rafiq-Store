@@ -7,6 +7,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Database temporary files
+*.db-wal
+*.db-shm
+
 # Environment & OS files
 .env
 .env.local
