@@ -194,16 +194,18 @@ function openLoginModal() {
   setTimeout(() => AdminDOM.adminPasswordInput.focus(), 100);
 }
 
-function openAdminPanel() {
+async function openAdminPanel() {
   // Reset admin filters to show all macros by default
   if (AdminDOM.adminStatusFilter) AdminDOM.adminStatusFilter.value = 'all';
   if (AdminDOM.adminCategoryFilter) AdminDOM.adminCategoryFilter.value = 'all';
   if (AdminDOM.adminMacroSearch) AdminDOM.adminMacroSearch.value = '';
 
   AdminDOM.adminPanelModal.style.display = 'flex';
-  loadAdminDashboard();
-  loadAdminMacros();
-  loadAdminCategories();
+  
+  // Load categories first, then macros and dashboard
+  await loadAdminCategories();
+  await loadAdminMacros();
+  await loadAdminDashboard();
 }
 
 function closeModal(modalId) {
@@ -262,7 +264,14 @@ async function loadAdminMacros() {
     const res = await fetch('/api/admin/macros', {
       headers: { 'Authorization': `Bearer ${AdminState.token}` }
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      if (res.status === 401) {
+        closeModal('adminPanelModal');
+        openLoginModal();
+        window.SupportApp?.showToast('Sessiya muddati tugadi, qayta kiring', 'error');
+      }
+      return;
+    }
 
     AdminState.macros = await res.json();
     filterAdminMacros();

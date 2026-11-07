@@ -6,11 +6,39 @@
 const crypto = require('crypto');
 const seedData = require('../data/seed.json');
 
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'support_desk_secure_jwt_secret_9988_xyz';
+
+function createAdminToken(username) {
+  const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  const payload = `${username}:${expiresAt}`;
+  const sig = crypto.createHmac('sha256', ADMIN_SECRET).update(payload).digest('hex');
+  return `${Buffer.from(payload).toString('base64url')}.${sig}`;
+}
+
+function verifyAdminToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+
+  try {
+    const payload = Buffer.from(parts[0], 'base64url').toString('utf-8');
+    const expectedSig = crypto.createHmac('sha256', ADMIN_SECRET).update(payload).digest('hex');
+    if (parts[1] === expectedSig) {
+      const [username, expiresAtStr] = payload.split(':');
+      if (Number(expiresAtStr) > Date.now()) {
+        return username;
+      }
+    }
+  } catch (err) {
+    return null;
+  }
+  return null;
+}
+
 // In-Memory Database store with Seed Data
 const store = {
   categories: JSON.parse(JSON.stringify(seedData.categories || [])),
   macros: JSON.parse(JSON.stringify(seedData.macros || [])),
-  tokens: new Set(),
   adminUser: {
     username: 'admin',
     passwordHash: crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || 'admin123').digest('hex')
@@ -92,8 +120,7 @@ module.exports = async (req, res) => {
 
     const hash = crypto.createHash('sha256').update(password || '').digest('hex');
     if (username === store.adminUser.username && hash === store.adminUser.passwordHash) {
-      const token = crypto.randomBytes(32).toString('hex');
-      store.tokens.add(token);
+      const token = createAdminToken(username);
       return sendJson(res, 200, { success: true, token, username });
     }
     return sendJson(res, 401, { error: 'Foydalanuvchi nomi yoki parol noto‘g‘ri' });
@@ -103,14 +130,12 @@ module.exports = async (req, res) => {
   if (method === 'GET' && pathname === '/api/admin/check') {
     const authHeader = req.headers['authorization'] || '';
     const token = authHeader.replace('Bearer ', '').trim();
-    return sendJson(res, store.tokens.has(token) ? 200 : 401, { authenticated: store.tokens.has(token) });
+    const user = verifyAdminToken(token);
+    return sendJson(res, user ? 200 : 401, { authenticated: Boolean(user) });
   }
 
   // POST /api/admin/logout
   if (method === 'POST' && pathname === '/api/admin/logout') {
-    const authHeader = req.headers['authorization'] || '';
-    const token = authHeader.replace('Bearer ', '').trim();
-    store.tokens.delete(token);
     return sendJson(res, 200, { success: true });
   }
 
@@ -118,7 +143,8 @@ module.exports = async (req, res) => {
   if (pathname.startsWith('/api/admin/')) {
     const authHeader = req.headers['authorization'] || '';
     const token = authHeader.replace('Bearer ', '').trim();
-    if (!store.tokens.has(token)) {
+    const verifiedUser = verifyAdminToken(token);
+    if (!verifiedUser) {
       return sendJson(res, 401, { error: 'Admin autentifikatsiyasi talab qilinadi' });
     }
 
