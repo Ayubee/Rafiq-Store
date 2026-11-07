@@ -95,11 +95,23 @@ function setupEventListeners() {
   // Theme toggle
   DOM.themeToggleBtn.addEventListener('click', toggleTheme);
 
-  // Search input
+  // Search input with instant responsive filtering
   DOM.searchInput.addEventListener('input', (e) => {
     AppState.searchQuery = e.target.value.trim().toLowerCase();
     DOM.clearSearchBtn.style.display = AppState.searchQuery ? 'block' : 'none';
     applyFilters();
+  });
+
+  // Press Enter inside search to instantly copy first match
+  DOM.searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const firstCard = DOM.macrosGrid.querySelector('.macro-card');
+      if (firstCard) {
+        const macroId = Number(firstCard.dataset.macroId);
+        copyMacroResponse(macroId);
+      }
+    }
   });
 
   DOM.clearSearchBtn.addEventListener('click', () => {
@@ -218,7 +230,52 @@ function renderCategories() {
   });
 }
 
-// Filtering & Search
+// Dual-Script Transliteration Helper (Latin <-> Cyrillic)
+function getSearchVariants(query) {
+  if (!query) return [];
+  const q = query.toLowerCase().trim();
+  const variants = new Set([q]);
+
+  const cyrToLatMap = {
+    'а':'a', 'б':'b', 'в':'v', 'г':'g', 'д':'d', 'е':'e', 'ё':'yo', 'ж':'j',
+    'з':'z', 'и':'i', 'й':'y', 'к':'k', 'л':'l', 'м':'m', 'н':'n', 'о':'o',
+    'п':'p', 'р':'r', 'с':'s', 'т':'t', 'у':'u', 'ф':'f', 'х':'x', 'ц':'ts',
+    'ч':'ch', 'ш':'sh', 'щ':'sh', 'ъ':'', 'ы':'i', 'ь':'', 'э':'e', 'ю':'yu',
+    'я':'ya', 'ў':'o', 'қ':'q', 'ғ':'g', 'ҳ':'h'
+  };
+
+  const latToCyrMap = {
+    'yo':'ё', 'ch':'ч', 'sh':'ш', 'yu':'ю', 'ya':'я', 'ts':'ц',
+    'a':'а', 'b':'б', 'v':'в', 'g':'г', 'd':'д', 'e':'е', 'j':'ж', 'z':'з',
+    'i':'и', 'y':'й', 'k':'к', 'l':'л', 'm':'м', 'n':'н', 'o':'о', 'p':'п',
+    'r':'р', 's':'с', 't':'т', 'u':'у', 'f':'ф', 'x':'х', 'q':'қ', 'h':'ҳ'
+  };
+
+  // Convert Cyrillic to Latin
+  let asLatin = '';
+  for (let i = 0; i < q.length; i++) {
+    const char = q[i];
+    asLatin += cyrToLatMap[char] !== undefined ? cyrToLatMap[char] : char;
+  }
+  variants.add(asLatin);
+
+  // Convert Latin to Cyrillic
+  let asCyr = q;
+  // Multi-char mappings first
+  ['yo', 'ch', 'sh', 'yu', 'ya', 'ts'].forEach(m => {
+    asCyr = asCyr.replaceAll(m, latToCyrMap[m]);
+  });
+  let finalCyr = '';
+  for (let i = 0; i < asCyr.length; i++) {
+    const char = asCyr[i];
+    finalCyr += latToCyrMap[char] !== undefined ? latToCyrMap[char] : char;
+  }
+  variants.add(finalCyr);
+
+  return Array.from(variants).filter(Boolean);
+}
+
+// Filtering & Relevance Scoring
 function applyFilters() {
   let filtered = AppState.macros.filter(m => m.is_active === 1);
 
@@ -227,7 +284,6 @@ function applyFilters() {
     filtered = filtered.filter(m => AppState.favorites.has(m.id));
   } else if (AppState.currentView === 'recent') {
     filtered = filtered.filter(m => AppState.recentIds.includes(m.id));
-    // Sort by recent order
     filtered.sort((a, b) => AppState.recentIds.indexOf(a.id) - AppState.recentIds.indexOf(b.id));
   }
 
@@ -241,17 +297,40 @@ function applyFilters() {
     filtered = filtered.filter(m => m.language === AppState.currentLang);
   }
 
-  // 4. Search Filter (Title, Problem, Keywords, Response)
+  // 4. Advanced Search with Relevance Scoring and Multi-Script support
   if (AppState.searchQuery) {
-    const q = AppState.searchQuery;
-    filtered = filtered.filter(m => {
-      const titleMatch = m.title && m.title.toLowerCase().includes(q);
-      const problemMatch = m.problem_description && m.problem_description.toLowerCase().includes(q);
-      const keywordsMatch = m.keywords && m.keywords.toLowerCase().includes(q);
-      const actionMatch = m.operator_action && m.operator_action.toLowerCase().includes(q);
-      const responseMatch = m.response_template && m.response_template.toLowerCase().includes(q);
-      return titleMatch || problemMatch || keywordsMatch || actionMatch || responseMatch;
+    const searchVariants = getSearchVariants(AppState.searchQuery);
+
+    const scored = [];
+    filtered.forEach(m => {
+      let score = 0;
+      const title = (m.title || '').toLowerCase();
+      const problem = (m.problem_description || '').toLowerCase();
+      const keywords = (m.keywords || '').toLowerCase();
+      const action = (m.operator_action || '').toLowerCase();
+      const response = (m.response_template || '').toLowerCase();
+
+      searchVariants.forEach(q => {
+        if (!q) return;
+        if (title === q) score += 100;
+        else if (title.includes(q)) score += 50;
+
+        if (keywords.includes(q)) score += 40;
+        if (problem.includes(q)) score += 25;
+        if (action.includes(q)) score += 15;
+        if (response.includes(q)) score += 10;
+      });
+
+      if (score > 0) {
+        // Boost by usage count so frequently used macros float to top
+        score += Math.min((m.usage_count || 0) * 0.5, 20);
+        scored.push({ macro: m, score });
+      }
     });
+
+    // Sort by highest relevance score
+    scored.sort((a, b) => b.score - a.score);
+    filtered = scored.map(item => item.macro);
   }
 
   renderMacros(filtered);
@@ -505,7 +584,12 @@ function escapeHtml(str) {
 
 function highlightMatch(text, query) {
   if (!query || !text) return text;
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const variants = getSearchVariants(query);
+  if (variants.length === 0) return text;
+
+  // Escape each variant for regex and join with |
+  const escaped = variants.map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const regex = new RegExp(`(${escaped})`, 'gi');
   return text.replace(regex, '<mark style="background: rgba(234, 179, 8, 0.35); color: inherit; padding: 0 2px; border-radius: 2px;">$1</mark>');
 }
 

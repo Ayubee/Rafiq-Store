@@ -104,12 +104,18 @@ function initDb() {
       token TEXT PRIMARY KEY,
       username TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      expires_at DATETIME NOT NULL
+      expires_at INTEGER
     );
-
     CREATE INDEX IF NOT EXISTS idx_macros_category ON macros(category_id);
     CREATE INDEX IF NOT EXISTS idx_macros_active ON macros(is_active);
   `);
+
+  // Run migrations if needed
+  try {
+    db.exec('ALTER TABLE admin_tokens ADD COLUMN expires_at INTEGER;');
+  } catch (e) {
+    // Column already exists
+  }
 
   // Seed Admin user if not present
   const adminCheck = db.prepare('SELECT id FROM admin_users WHERE username = ?').get('admin');
@@ -265,11 +271,13 @@ function authenticateAdmin(req) {
   }
   const token = authHeader.substring(7).trim();
   try {
-    const session = db.prepare(`
-      SELECT username FROM admin_tokens 
-      WHERE token = ? AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
-    `).get(token);
-    return Boolean(session);
+    const session = db.prepare('SELECT username, expires_at FROM admin_tokens WHERE token = ?').get(token);
+    if (!session) return false;
+    if (session.expires_at && session.expires_at < Date.now()) {
+      db.prepare('DELETE FROM admin_tokens WHERE token = ?').run(token);
+      return false;
+    }
+    return true;
   } catch (err) {
     return false;
   }
@@ -399,13 +407,12 @@ const server = http.createServer(async (req, res) => {
       clearFailedLogin(clientIp);
 
       const token = crypto.randomBytes(32).toString('hex');
-      // 24 hours expiry
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      // 24 hours expiry as integer timestamp
+      const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
       
       try {
         db.prepare('INSERT INTO admin_tokens (token, username, expires_at) VALUES (?, ?, ?)').run(token, username, expiresAt);
       } catch (tokenErr) {
-        // Fallback if column not yet migrated
         db.prepare('INSERT INTO admin_tokens (token, username) VALUES (?, ?)').run(token, username);
       }
 
