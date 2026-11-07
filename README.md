@@ -30,26 +30,5 @@ Zamonaviy, o‘ta tezkor va yengil ishlaydigan **Support Manual & Macro Manager*
 - **Database**: Node.js built-in `node:sqlite` (SQLite ma’lumotlar bazasi). Hech qanday tashqi npm paketlar talab qilinmaydi!
 - **Frontend**: Vanilla ES6+ JavaScript, CSS Variables bilan ishlab chiqilgan maxsus dizayn tizimi.
 
----
-
-## 🚀 Ishga tushirish
-
-1. Ushbu repository'ni klonlang:
-   ```bash
-   git clone <repo_url>
-   cd "rafiq store"
-   ```
-
-2. Serverni ishga tushiring:
-   ```bash
-   node server.js
-   # yoki
-   npm start
-   ```
-
-3. Brauzerda oching:
-   ```text
-   http://localhost:3001
-   ```
 
 
