@@ -10,22 +10,44 @@ const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
-// Support Vercel serverless environment (writable /tmp)
-const DATA_DIR = process.env.VERCEL ? '/tmp' : path.join(__dirname, 'data');
-const DB_FILE = path.join(DATA_DIR, 'support.db');
+const IS_VERCEL = Boolean(process.env.VERCEL);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// Resolve database path: Vercel uses writable /tmp directory
+let DB_FILE;
+if (IS_VERCEL) {
+  const tmpDb = path.join('/tmp', 'support.db');
+  const bundledDb = path.join(__dirname, 'data', 'support.db');
+  
+  // Copy bundled seed database to writable /tmp on first run
+  if (!fs.existsSync(tmpDb)) {
+    if (fs.existsSync(bundledDb)) {
+      try {
+        fs.copyFileSync(bundledDb, tmpDb);
+      } catch (copyErr) {
+        // Fallback: will be initialized by initDb()
+      }
+    }
+  }
+  DB_FILE = tmpDb;
+} else {
+  const DATA_DIR = path.join(__dirname, 'data');
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  DB_FILE = path.join(DATA_DIR, 'support.db');
 }
 
 // Initialize SQLite database
 const db = new DatabaseSync(DB_FILE);
 
-// Enable WAL mode for high performance concurrent reads and foreign keys
+// Set appropriate journal mode (DELETE for serverless /tmp, WAL for standard servers)
 try {
-  db.exec('PRAGMA journal_mode = WAL;');
+  if (IS_VERCEL) {
+    db.exec('PRAGMA journal_mode = DELETE;');
+  } else {
+    db.exec('PRAGMA journal_mode = WAL;');
+  }
   db.exec('PRAGMA foreign_keys = ON;');
 } catch (e) {
   // Fallback if pragma is restricted
