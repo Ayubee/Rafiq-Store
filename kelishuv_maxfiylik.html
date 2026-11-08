@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <title>Maxfiylik va Mas’uliyat To‘g‘risida Kelishuv - Rafiq Store</title>
+  <style>
+    /* A4 Print Optimization */
+    @page {
+      size: A4 portrait;
+      margin: 15mm 18mm 15mm 18mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 11pt;
+      line-height: 1.35;
+      color: #000;
+      background-color: #fff;
+      padding: 0;
+    }
+
+    .document-container {
+      width: 100%;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 5mm;
+    }
+
+    /* Header styling */
+    .header {
+      text-align: center;
+      margin-bottom: 12px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 8px;
+    }
+
+    .doc-pre-title {
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #333;
+      margin-bottom: 3px;
+    }
+
+    .doc-title {
+      font-size: 13.5pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .doc-subtitle {
+      font-size: 10pt;
+      font-style: italic;
+    }
+
+    /* Meta: City & Date */
+    .doc-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      font-weight: bold;
+      font-size: 10.5pt;
+    }
+
+    /* Content styling */
+    .preamble {
+      text-align: justify;
+      text-indent: 10mm;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-size: 11pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+
+    p {
+      text-align: justify;
+      text-indent: 8mm;
+      margin-bottom: 5px;
+    }
+
+    ul {
+      margin-left: 14mm;
+      margin-bottom: 6px;
+    }
+
+    li {
+      text-align: justify;
+      margin-bottom: 3px;
+    }
+
+    .highlight-box {
+      border: 1px dashed #333;
+      background-color: #fafafa;
+      padding: 6px 10px;
+      margin: 6px 0;
+      border-radius: 3px;
+    }
+
+    .highlight-box p {
+      text-indent: 0;
+      font-size: 10pt;
+    }
+
+    /* Warning Alert Box */
+    .legal-alert {
+      border-left: 3px solid #000;
+      padding-left: 8px;
+      margin: 6px 0;
+      font-size: 10pt;
+    }
+
+    /* Signatures Table */
+    .signatures-section {
+      margin-top: 16px;
+      page-break-inside: avoid;
+    }
+
+    .sign-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    .sign-table th, .sign-table td {
+      border: 1px solid #000;
+      padding: 8px 10px;
+      vertical-align: top;
+      font-size: 10pt;
+    }
+
+    .sign-table th {
+      background-color: #f2f2f2;
+      text-align: center;
+      font-weight: bold;
+      width: 50%;
+    }
+
+    .field-row {
+      margin-bottom: 6px;
+    }
+
+    .field-label {
+      font-weight: bold;
+    }
+
+    .dots-line {
+      display: inline-block;
+      border-bottom: 1px dotted #000;
+      width: 65%;
+      height: 14px;
+    }
+
+    .full-dots-line {
+      display: block;
+      border-bottom: 1px dotted #000;
+      width: 100%;
+      height: 16px;
+      margin-top: 2px;
+    }
+
+    .signature-space {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .stamp-box {
+      border: 1px dashed #888;
+      width: 75px;
+      height: 75px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8pt;
+      color: #666;
+      margin: 8px auto 0 auto;
+      text-align: center;
+    }
+
+    /* Print action bar (hidden during print) */
+    .print-actions {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: #1e293b;
+      padding: 10px 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+    }
+
+    .btn-print {
+      background-color: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-print:hover {
+      background-color: #1d4ed8;
+    }
+
+    @media print {
+      .print-actions {
+        display: none !important;
+      }
+      body {
+        padding: 0;
+      }
+      .document-container {
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen-only Print Bar -->
+  <div class="print-actions">
+    <span>🖨️ A4 formatida chop etishga tayyor:</span>
+    <button class="btn-print" onclick="window.print()">
+      📄 Printerdan chiqarish (PDF saqlash)
+    </button>
+  </div>
+
+  <div class="document-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="doc-pre-title">O‘zbekiston Respublikasi Mehnat Kodeksi va Amaldagi Qonunchiligi Asosida</div>
+      <div class="doc-title">MAXFIYLIK VA MAS’ULIYAT TO‘G‘RISIDA KELISHUV</div>
+      <div class="doc-subtitle">(Mehnat shartnomasiga qo‘shimcha maxfiylik va axborot xavfsizligi ilovasi)</div>
+    </div>
+
+    <!-- Meta Info -->
+    <div class="doc-meta">
+      <div>Qo‘qon shahri</div>
+      <div>«_____» ________________ 202___ yil</div>
+    </div>
+
+    <!-- Preamble -->
+    <p class="preamble">
+      Bundan buyon matnda <strong>«Ish beruvchi»</strong> deb ataluvchi <strong>«Rafiq Store»</strong> ma’muriyati nomidan rahbar _________________________________________________________________ bir tomondan, va bundan buyon matnda <strong>«Operator»</strong> deb ataluvchi fuqaro:
+    </p>
+    <div style="margin-left: 8mm; margin-bottom: 6px; font-size: 10.5pt;">
+      <div>• <strong>F.I.Sh.:</strong> ____________________________________________________________________________________</div>
+      <div>• <strong>Pasport / ID-karta ma’lumotlari:</strong> Seriya va raqami ___________________, JShShIR: ___________________</div>
+      <div>• <strong>Doimiy yashash manzili:</strong> ________________________________________________________________________</div>
+    </div>
+    <p class="preamble">
+      ikkinchi tomondan, O‘zbekiston Respublikasining Mehnat kodeksi, Fuqarolik kodeksi, «Shaxsiy ma’lumotlar to‘g‘risida»gi (O‘RQ-547-son) hamda «Tijorat siri to‘g‘risida»gi (O‘RQ-374-son) Qonun hujjatlariga qat’iy amal qilgan holda mazkur kelishuvni quyidagilar haqida tuzdilar:
+    </p>
+
+    <!-- 1. KELISHUVNING PREDMETI -->
+    <div class="section-title">1. KELISHUVNING PREDMETI VA ASOSIY SHARTLARI</div>
+    <p>
+      1.1. Mazkur kelishuv «Rafiq Store Support» ilovasi va qo‘llab-quvvatlash xizmati markazida Operator lavozimida mehnat faoliyatini olib borayotgan xodimning xizmat vazifalarini bajarish davrida va mehnat munosabatlari to‘xtatilgandan keyin ham o‘ziga ma’lum bo‘lgan mijozlarning shaxsiy ma’lumotlari, korxona tijorat sirlari, narx siyosati, texnik bazasi, shuningdek telefon qo‘ng‘iroqlari audioyozuvlari va chat yozishmalari arxivini qat’iy sir saqlash majburiyatini belgilaydi.
+    </p>
+    <p>
+      1.2. <strong>Tizimda shaxsiy identifikatsiya:</strong> Axborot xavfsizligini ta’minlash maqsadida tizimda har bir operator o‘zining <strong>haqiqiy ism-sharifiga to‘liq mos keladigan login va hisob</strong> ostida ishlashi majburiy hisoblanadi. Har qanday uydirma taxallus (pseudonym), begonalar hisobidan foydalanish yoki laqablarni qo‘llash qat’iyan taqiqlanadi.
+    </p>
+
+    <!-- 2. OPERATORNING MAJBURIYATLARI -->
+    <div class="section-title">2. MA’LUMOTLARNI HIMOYA QILISH BO‘YICHA OPERATORNING MAJBURIYATLARI</div>
+    <p>2.1. Operator o‘z xizmat vazifalarini bajarish davomida quyidagi qat’iy majburiyatlarni o‘z zimmasiga oladi:</p>
+    <ul>
+      <li>Mijozlar va haydovchilarning shaxsiy ma’lumotlari (telefon raqamlari, ism-sharifi, GPS koordinatalari, buyurtmalar tarixi, to‘lov cheklari)ni uchinchi shaxslarga har qanday usulda oshkor qilmaslik, nusxalamaslik va tarqatmaslik;</li>
+      <li>Serverda va CRM tizimida saqlanadigan barcha audio qo‘ng‘iroqlar yozuvlari hamda matnli chat yozishmalarini shaxsiy maqsadlarda foydalanmaslik, tashqi xotira vositalariga yuklamaslik yoki shaxsiy messenjerlarga (Telegram, WhatsApp va boshqalar) jo‘natmaslik;</li>
+      <li>«Rafiq Store» korxonasining ichki biznes jarayonlari, mijozlar bazasi, moliyaviy hisobotlari va tijorat sirlarini sir saqlash;</li>
+      <li>Tizimga kirish parollari va xizmat akkauntlarini uchinchi shaxslarga (shu jumladan boshqa xodimlarga) bermaslik;</li>
+      <li>Mehnat shartnomasi bekor qilingan taqdirda ham, ushbu ma’lumotlarni kelgusidagi <strong>3 (uch) yil</strong> davomida oshkor qilmaslik.</li>
+    </ul>
+
+    <!-- 3. JAVOBGARLIK VA HUQUQIY SANKSIYALAR -->
+    <div class="section-title">3. JAVOBGARLIK VA QONUNIY SANKSIYALAR</div>
+    <p>
+      Operator tomonidan maxfiylik majburiyatlari buzilgan, mijozlar shaxsiy ma’lumotlari yoki korxona sirlari sizib chiqqan yoxud ruxsatsiz tarqatilgan taqdirda, O‘zbekiston Respublikasining amaldagi qonunchiligiga asosan quyidagi javobgarlik choralari qo‘llaniladi:
+    </p>
+    
+    <div class="legal-alert">
+      <p style="text-indent: 0;">
+        <strong>3.1. Mehnat va Intizomiy javobgarlik:</strong> O‘zbekiston Respublikasi Mehnat kodeksining 312-moddasiga asosan xodimga nisbatan hayfsan, o‘rtacha oylik ish haqining 30 foizidan 50 foizigacha jarima undirish yoki mehnat shartnomasini ish beruvchining tashabbusi bilan bekor qilish choralari qo‘llaniladi.
+      </p>
+      <p style="text-indent: 0; margin-top: 3px;">
+        <strong>3.2. To‘liq Moddiy javobgarlik:</strong> Mehnat kodeksining 337–343-moddalari va Fuqarolik kodeksining 985-moddasiga muvofiq, ma’lumotlar sizib chiqishi natijasida «Rafiq Store» korxonasiga yoki uning mijozlariga yetkazilgan barcha to‘g‘ridan-to‘g‘ri moddiy zararlar va boy berilgan foyda xodimdan to‘liq (100% miqdorida) sud tartibida undiriladi.
+      </p>
+      <p style="text-indent: 0; margin-top: 3px;">
+        <strong>3.3. Ma’muriy javobgarlik (Jarima):</strong> O‘zbekiston Respublikasi Ma’muriy javobgarlik to‘g‘risidagi kodeksining 46-2-moddasiga muvofiq, shaxsiy ma’lumotlarni qonunga xilof ravishda yig‘ish, tizimlashtirish, saqlash, foydalanish yoki tarqatish — fuqarolarga <strong>bazaviy hisoblash miqdorining (BHM) 10 baravaridan 50 baravarigacha</strong> miqdorda ma’muriy jarima solishga sabab bo‘ladi.
+      </p>
+      <p style="text-indent: 0; margin-top: 3px;">
+        <strong>3.4. Jinoiy javobgarlik (Qamoq va ozodlikdan mahrum etish):</strong> Agar sizib chiqqan ma’lumotlar korxona tijorat sirlari, yirik hajmdagi ma’lumotlar bazasi yoki og‘ir oqibatlarga sabab bo‘luvchi axborotlar jumlasiga kirsa, O‘zbekiston Respublikasi Jinoyat kodeksining 141-2-moddasi (Shaxsiy hayot daxlsizligini buzish) hamda 191-moddasi (Tijorat yoki bank sirini oshkor qilish)ga asosan aybdor shaxsga nisbatan BHMning 100 baravaridan 300 baravarigacha jarima yoki <strong>3 yilgacha ozodlikni cheklash yoxud 3 yilgacha ozodlikdan mahrum qilish</strong> jazosi qo‘llaniladi.
+      </p>
+    </div>
+
+    <!-- 4. YAKUNIY QOIDALAR -->
+    <div class="section-title">4. YAKUNIY QOIDALAR</div>
+    <p>
+      4.1. Mazkur kelishuv ikki tomonlama imzolangan kundan e’tiboran yuridik kuchga ega bo‘ladi va Operator bilan tuzilgan asosiy Mehnat shartnomasining ajralmas qismi hisoblanadi.
+    </p>
+    <p>
+      4.2. Ushbu kelishuv har bir tomon uchun bir xil yuridik kuchga ega bo‘lgan 2 (ikki) nusxada tuzildi: bir nusxasi Ish beruvchining kadrlar bo‘limida, ikkinchi nusxasi Operatorning shaxsiy xizmat yig‘majildida saqlanadi.
+    </p>
+
+    <!-- Signatures -->
+    <div class="signatures-section">
+      <div class="section-title" style="text-align: center; margin-bottom: 6px;">TOMONLARNING YURIDIK REKVIZITLARI VA IMZOLARI</div>
+      <table class="sign-table">
+        <thead>
+          <tr>
+            <th>ISH BERUVCHI</th>
+            <th>OPERATOR</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="field-row">
+                <span class="field-label">Tashkilot:</span> «Rafiq Store»
+              </div>
+              <div class="field-row">
+                <span class="field-label">Faoliyat joyi:</span> Farg‘ona viloyati, Qo‘qon shahri
+              </div>
+              <div class="field-row">
+                <span class="field-label">Vakil / Rahbar:</span> __________________________
+              </div>
+              <div style="margin-top: 15px;">
+                <span class="field-label">Imzo:</span> ____________________________________
+              </div>
+              <div class="stamp-box">
+                M.O‘.<br>(Muhr o‘rni)
+              </div>
+            </td>
+            <td>
+              <div class="field-row">
+                <span class="field-label">F.I.Sh.:</span> <span class="full-dots-line"></span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Pasport:</span> <span class="dots-line"></span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Tel. raqami:</span> <span class="dots-line"></span>
+              </div>
+              <div class="field-row" style="margin-top: 10px; font-size: 8.5pt; font-style: italic; color: #444;">
+                Kelishuv matni bilan to‘liq tanishdim, uning huquqiy oqibatlarini tushundim va bajarish majburiyatini olaman:
+              </div>
+              <div style="margin-top: 12px;">
+                <span class="field-label">Shaxsiy imzo:</span> ____________________________
+              </div>
+              <div style="margin-top: 8px;">
+                <span class="field-label">Sana:</span> «_____» __________________ 202___ y.
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</body>
+</html>
